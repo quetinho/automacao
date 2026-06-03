@@ -1,0 +1,122 @@
+<main class="app-shell">
+  <header class="topbar" style="text-align: center">
+    <div style="width: 100%;">
+      <strong><h2>Monitoramento do tanque</h2></strong>
+    </div>
+
+    @if (authenticated()) {
+      <p-button
+        label="Sair"
+        icon="pi pi-sign-out"
+        severity="secondary"
+        (onClick)="logout()"
+      />
+    } @else {
+      <!--  <p-button label="Entrar" icon="pi pi-sign-in" (onClick)="openLogin()" /> -->
+    }
+  </header>
+
+  @if (authenticated()) {
+    <section class="dashboard">
+      <div class="dashboard-header">
+        <span class="eyebrow">Area restrita</span>
+        <h2>Painel principal</h2>
+        <p>As proximas configuracoes do sistema podem ser adicionadas aqui.</p>
+      </div>
+
+      <div class="settings-grid">
+        <article>
+          <span>Tanque</span>
+          <strong>{{ waterLevel() }}%</strong>
+          <small>Ultima leitura sincronizada</small>
+        </article>
+        <article>
+          <span>JWT</span>
+          <strong>Ativo</strong>
+          <small>Token armazenado no navegador</small>
+        </article>
+      </div>
+    </section>
+  } @else {
+    <section class="monitor">
+      <div class="tank-panel" aria-live="polite">
+        <div class="tank-graphic" aria-label="Capacidade atual do tanque">
+          <div class="tank">
+            <div class="water" [style.height.%]="waterLevel()">
+              <span>{{ waterLevel() }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="measurement">
+          @if (loadingMeasurement()) {
+            <strong>Carregando medicao...</strong>
+          } @else {
+            <strong>Ultima medicao</strong>
+            <span>{{
+              measurement()?.lastMeasurementAt | date: "dd/MM/yyyy HH:mm"
+            }}</span>
+          }
+
+          <a
+            class="telegram-alert"
+            href="https://t.me/casa_ERL_bot"
+            target="_blank"
+            rel="noopener"
+          >
+            <i class="pi pi-send" aria-hidden="true"></i>
+            Avisar quando chegar a 30%
+          </a>
+        </div>
+      </div>
+    </section>
+  }
+</main>
+
+<p-dialog
+  header="Login do sistema"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [visible]="loginVisible()"
+  (visibleChange)="loginVisible.set($event)"
+  styleClass="login-dialog"
+>
+  <form class="login-form" (ngSubmit)="login()">
+    <label for="usuario">Usuario</label>
+    <input
+      id="usuario"
+      name="usuario"
+      type="text"
+      pInputText
+      [ngModel]="usuario()"
+      (ngModelChange)="usuario.set($event)"
+      autocomplete="username"
+    />
+
+    <label for="senha">Senha</label>
+    <p-password
+      inputId="senha"
+      name="senha"
+      [ngModel]="senha()"
+      (ngModelChange)="senha.set($event)"
+      [feedback]="false"
+      [toggleMask]="true"
+      autocomplete="current-password"
+    />
+
+    @if (loginError()) {
+      <p class="form-error">{{ loginError() }}</p>
+    }
+
+    <div class="dialog-actions">
+      <p-button
+        label="Cancelar"
+        severity="secondary"
+        type="button"
+        (onClick)="loginVisible.set(false)"
+      />
+      <p-button label="Entrar" icon="pi pi-check" type="submit" />
+    </div>
+  </form>
+</p-dialog>

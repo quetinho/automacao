@@ -1,0 +1,11 @@
+{
+  "/db": {
+    "target": "http://localhost/minhacasa",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/db": ""
+    }
+  }
+}
