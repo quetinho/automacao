@@ -22,7 +22,7 @@ export class TankService {
   getLastMeasurement(): Observable<TankMeasurement> {
     return this.http.get<TankStateResponse>(this.apiUrl).pipe(
       map((state) => ({
-        capacityPercent: Number(state.volume),
+        capacityPercent: Math.round(Number(state.volume) * 10) / 10,
         lastMeasurementAt: this.normalizeDate(state.medicao),
       })),
       catchError(() =>
