@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export interface TankMeasurement {
   capacityPercent: number;
@@ -9,6 +9,7 @@ export interface TankMeasurement {
 
 interface TankStateResponse {
   volume: number;
+  distancia: number;
   medicao: string;
 }
 
@@ -17,7 +18,7 @@ interface TankStateResponse {
 })
 export class TankService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'https://minhacasa.sajeba.com.br/db/estado-tanque';
+  private readonly apiUrl = '/db/estado-tanque';
 
   getLastMeasurement(): Observable<TankMeasurement> {
     return this.http.get<TankStateResponse>(this.apiUrl).pipe(
@@ -25,12 +26,6 @@ export class TankService {
         capacityPercent: Math.round(Number(state.volume) * 10) / 10,
         lastMeasurementAt: this.normalizeDate(state.medicao),
       })),
-      catchError(() =>
-        of({
-          capacityPercent: 70,
-          lastMeasurementAt: new Date().toISOString(),
-        }),
-      ),
     );
   }
 

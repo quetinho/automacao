@@ -1,7 +1,8 @@
 <main class="app-shell">
-  <header class="topbar" style="text-align: center">
-    <div style="width: 100%;">
-      <strong><h2>Monitoramento do tanque</h2></strong>
+  <header class="topbar">
+    <div>
+      <span class="eyebrow">Automação residencial</span>
+      <h1>Monitoramento do tanque</h1>
     </div>
 
     @if (authenticated()) {
@@ -12,30 +13,264 @@
         (onClick)="logout()"
       />
     } @else {
-      <!--  <p-button label="Entrar" icon="pi pi-sign-in" (onClick)="openLogin()" /> -->
+      <p-button label="Entrar" icon="pi pi-sign-in" (onClick)="openLogin()" />
     }
   </header>
 
   @if (authenticated()) {
     <section class="dashboard">
       <div class="dashboard-header">
-        <span class="eyebrow">Area restrita</span>
-        <h2>Painel principal</h2>
-        <p>As proximas configuracoes do sistema podem ser adicionadas aqui.</p>
+        <span class="eyebrow">Área restrita</span>
+        <h2>Configurações e diagnóstico</h2>
+        <p>Calibração do sensor, leituras do banco e alertas do Telegram. Versão 1.2</p>
       </div>
 
-      <div class="settings-grid">
-        <article>
-          <span>Tanque</span>
-          <strong>{{ waterLevel() }}%</strong>
-          <small>Ultima leitura sincronizada</small>
-        </article>
-        <article>
-          <span>JWT</span>
-          <strong>Ativo</strong>
-          <small>Token armazenado no navegador</small>
-        </article>
-      </div>
+      @if (adminMessage()) {
+        <div class="feedback success">{{ adminMessage() }}</div>
+      }
+      @if (adminError()) {
+        <div class="feedback error">{{ adminError() }}</div>
+      }
+
+      @if (loadingAdmin()) {
+        <div class="loading-card">Carregando informações...</div>
+      } @else {
+        <div class="admin-grid">
+          <section class="card configuration-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">Calibração</span>
+                <h3>Limites do tanque</h3>
+              </div>
+              <i class="pi pi-sliders-h"></i>
+            </div>
+
+            <label for="distanciaCheio">
+              Distância com tanque cheio (cm)
+            </label>
+            <input
+              id="distanciaCheio"
+              type="number"
+              min="0"
+              step="0.01"
+              pInputText
+              [ngModel]="configuration().distanciaCheio"
+              (ngModelChange)="updateDistance('distanciaCheio', $event)"
+            />
+
+            <label for="distanciaVazio">
+              Distância com tanque vazio (cm)
+            </label>
+            <input
+              id="distanciaVazio"
+              type="number"
+              min="0"
+              step="0.01"
+              pInputText
+              [ngModel]="configuration().distanciaVazio"
+              (ngModelChange)="updateDistance('distanciaVazio', $event)"
+            />
+
+            <small>
+              Quanto menor a distância medida, maior é o nível da água.
+            </small>
+            <p-button
+              label="Salvar limites"
+              icon="pi pi-save"
+              [loading]="savingConfiguration()"
+              (onClick)="saveConfiguration()"
+            />
+          </section>
+
+          <section class="card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">Banco de dados</span>
+                <h3>Extremos observados</h3>
+              </div>
+              <i class="pi pi-database"></i>
+            </div>
+
+            <div class="extreme">
+              <span>Menor distância (tanque mais cheio)</span>
+              <strong>{{ extremes()?.menorDistancia?.valor ?? "-" }} cm</strong>
+              <small>
+                {{
+                  normalizeDate(extremes()?.menorDistancia?.dt)
+                    | date: "dd/MM/yyyy HH:mm"
+                }}
+              </small>
+            </div>
+            <div class="extreme">
+              <span>Maior distância (tanque mais vazio)</span>
+              <strong>{{ extremes()?.maiorDistancia?.valor ?? "-" }} cm</strong>
+              <small>
+                {{
+                  normalizeDate(extremes()?.maiorDistancia?.dt)
+                    | date: "dd/MM/yyyy HH:mm"
+                }}
+              </small>
+            </div>
+            <div class="database-summary">
+              <span>{{ extremes()?.total ?? 0 }} leituras registradas</span>
+            </div>
+          </section>
+        </div>
+
+        <section class="card chart-card">
+          <div class="card-heading">
+            <div>
+              <span class="eyebrow">Últimos cinco dias</span>
+              <h3>Níveis mais altos e mais baixos</h3>
+            </div>
+            <div class="legend">
+              <span><i class="high"></i> Mais alto</span>
+              <span><i class="low"></i> Mais baixo</span>
+            </div>
+          </div>
+
+          @if (dailyExtremes().length) {
+            <div class="chart-scroll">
+              <svg
+                class="level-chart"
+                viewBox="0 0 700 270"
+                role="img"
+                aria-label="Gráfico dos níveis extremos dos últimos cinco dias"
+              >
+                @for (line of [0, 25, 50, 75, 100]; track line) {
+                  <line
+                    x1="55"
+                    x2="655"
+                    [attr.y1]="chartY(line)"
+                    [attr.y2]="chartY(line)"
+                    class="grid-line"
+                  />
+                  <text x="8" [attr.y]="chartY(line) + 4" class="axis-label">
+                    {{ line }}%
+                  </text>
+                }
+
+                <polyline [attr.points]="highLevelPoints()" class="line high" />
+                <polyline [attr.points]="lowLevelPoints()" class="line low" />
+
+                @for (item of dailyExtremes(); track item.data; let index = $index) {
+                  <circle
+                    [attr.cx]="chartX(index)"
+                    [attr.cy]="chartY(item.nivelMaisAlto.percentual)"
+                    r="5"
+                    class="point high"
+                  >
+                    <title>
+                      Mais alto: {{ item.nivelMaisAlto.percentual }}%,
+                      {{ item.nivelMaisAlto.distancia }} cm em
+                      {{ normalizeDate(item.nivelMaisAlto.dt) | date: "dd/MM HH:mm" }}
+                    </title>
+                  </circle>
+                  <circle
+                    [attr.cx]="chartX(index)"
+                    [attr.cy]="chartY(item.nivelMaisBaixo.percentual)"
+                    r="5"
+                    class="point low"
+                  >
+                    <title>
+                      Mais baixo: {{ item.nivelMaisBaixo.percentual }}%,
+                      {{ item.nivelMaisBaixo.distancia }} cm em
+                      {{ normalizeDate(item.nivelMaisBaixo.dt) | date: "dd/MM HH:mm" }}
+                    </title>
+                  </circle>
+                  <text
+                    [attr.x]="chartX(index)"
+                    y="252"
+                    text-anchor="middle"
+                    class="axis-label"
+                  >
+                    {{ normalizeDate(item.data) | date: "dd/MM" }}
+                  </text>
+                }
+              </svg>
+            </div>
+
+            <div class="daily-list">
+              @for (item of dailyExtremes(); track item.data) {
+                <article>
+                  <strong>{{ normalizeDate(item.data) | date: "dd/MM/yyyy" }}</strong>
+                  <span>
+                    Alto: {{ item.nivelMaisAlto.percentual }}% às
+                    {{ normalizeDate(item.nivelMaisAlto.dt) | date: "HH:mm" }}
+                  </span>
+                  <span>
+                    Baixo: {{ item.nivelMaisBaixo.percentual }}% às
+                    {{ normalizeDate(item.nivelMaisBaixo.dt) | date: "HH:mm" }}
+                  </span>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="empty-state">Não há leituras nos últimos cinco dias.</p>
+          }
+        </section>
+
+        <section class="card telegram-card">
+          <div class="card-heading">
+            <div>
+              <span class="eyebrow">Telegram</span>
+              <h3>Pessoas sem nome</h3>
+            </div>
+            <span class="counter">{{ pendingTelegrams().length }}</span>
+          </div>
+
+          @if (pendingTelegrams().length) {
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Send ID</th>
+                    <th>Recebido em</th>
+                    <th>Nome</th>
+                    <th>Enviar alerta</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (telegram of pendingTelegrams(); track telegram.id) {
+                    <tr>
+                      <td data-label="Send ID">{{ telegram.send }}</td>
+                      <td data-label="Recebido em">
+                        {{ normalizeDate(telegram.dt) | date: "dd/MM/yyyy HH:mm" }}
+                      </td>
+                      <td data-label="Nome">
+                        <input
+                          type="text"
+                          pInputText
+                          [(ngModel)]="telegram.nome"
+                          placeholder="Nome da pessoa"
+                        />
+                      </td>
+                      <td data-label="Enviar alerta">
+                        <label class="checkbox-label">
+                          <input type="checkbox" [(ngModel)]="telegram.enviar" />
+                          Sim
+                        </label>
+                      </td>
+                      <td>
+                        <p-button
+                          label="Salvar"
+                          icon="pi pi-check"
+                          size="small"
+                          [loading]="savingTelegramId() === telegram.id"
+                          (onClick)="saveTelegram(telegram)"
+                        />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="empty-state">Todos os usuários do Telegram possuem nome.</p>
+          }
+        </section>
+      }
     </section>
   } @else {
     <section class="monitor">
@@ -50,12 +285,12 @@
 
         <div class="measurement">
           @if (loadingMeasurement()) {
-            <strong>Carregando medicao...</strong>
+            <strong>Carregando medição...</strong>
           } @else {
-            <strong>Ultima medicao</strong>
-            <span>{{
-              measurement()?.lastMeasurementAt | date: "dd/MM/yyyy HH:mm"
-            }}</span>
+            <strong>Última medição</strong>
+            <span>
+              {{ measurement()?.lastMeasurementAt | date: "dd/MM/yyyy HH:mm" }}
+            </span>
           }
 
           <a
@@ -83,7 +318,7 @@
   styleClass="login-dialog"
 >
   <form class="login-form" (ngSubmit)="login()">
-    <label for="usuario">Usuario</label>
+    <label for="usuario">Usuário</label>
     <input
       id="usuario"
       name="usuario"

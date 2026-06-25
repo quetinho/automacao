@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export interface LoginCredentials {
   usuario: string;
@@ -18,7 +18,7 @@ export interface LoginResponse {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly storageKey = 'automacao.jwt';
-  private readonly apiUrl = '/api/login';
+  private readonly apiUrl = '/db/login';
 
   get token(): string | null {
     return localStorage.getItem(this.storageKey);
@@ -30,12 +30,6 @@ export class AuthService {
 
   login(credentials: LoginCredentials): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(this.apiUrl, credentials).pipe(
-      catchError(() =>
-        of({
-          token: 'jwt-token-de-desenvolvimento',
-          nome: credentials.usuario || 'Usuario',
-        }),
-      ),
       map((response) => {
         localStorage.setItem(this.storageKey, response.token);
         return response;
