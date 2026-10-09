@@ -32,6 +32,43 @@ export interface DailyTankExtremes {
   nivelMaisBaixo: DailyLevel;
 }
 
+export interface TankHistoryMeasurement {
+  distancia: number;
+  percentual: number;
+  dt: string;
+}
+
+export interface NetworkDevice {
+  id: number;
+  deviceNome: string;
+  macAddress: string;
+  ipAddress?: string;
+  missingCount: number;
+  lastScan: string | null;
+  online: boolean;
+}
+
+export interface NetworkHistory {
+  id: number;
+  deviceNome: string;
+  macAddress: string;
+  ipAddress: string | null;
+  connectTime: string;
+  lastSeen: string;
+  disconnectTime: string | null;
+  timeConnection: string | null;
+}
+
+export interface UnknownNetworkConnection {
+  id: number;
+  deviceNome: string | null;
+  macAddress: string;
+  ipAddress: string | null;
+  connectTime: string;
+  lastSeen: string;
+  disconnectTime: string | null;
+}
+
 export interface TelegramRegistration {
   id: number;
   nome: string | null;
@@ -43,10 +80,12 @@ export interface TelegramRegistration {
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = '/db/admin';
+  private readonly apiUrl = 'db/admin';
 
   getTankConfiguration(): Observable<TankConfiguration> {
-    return this.http.get<TankConfiguration>(`${this.apiUrl}/tanque/configuracao`);
+    return this.http.get<TankConfiguration>(
+      `${this.apiUrl}/tanque/configuracao`,
+    );
   }
 
   updateTankConfiguration(
@@ -65,6 +104,52 @@ export class AdminService {
   getFiveDayExtremes(): Observable<DailyTankExtremes[]> {
     return this.http.get<DailyTankExtremes[]>(
       `${this.apiUrl}/tanque/extremos-cinco-dias`,
+    );
+  }
+
+  get24HourHistory(): Observable<TankHistoryMeasurement[]> {
+    return this.http.get<TankHistoryMeasurement[]>(
+      `${this.apiUrl}/tanque/historico-24-horas`,
+    );
+  }
+
+  getNetworkDevices(): Observable<NetworkDevice[]> {
+    return this.http.get<NetworkDevice[]>(`${this.apiUrl}/rede/dispositivos`);
+  }
+
+  getNetworkHistory(nome: string = ''): Observable<NetworkHistory[]> {
+    return this.http.get<NetworkHistory[]>(
+      nome == ''
+        ? `${this.apiUrl}/rede/historico`
+        : `${this.apiUrl}/rede/historico/${nome}`,
+    );
+  }
+
+  getUnknownNetworkConnections(): Observable<UnknownNetworkConnection[]> {
+    return this.http.get<UnknownNetworkConnection[]>(
+      `${this.apiUrl}/rede/desconhecidos`,
+    );
+  }
+
+  createNetworkDevice(
+    device: Omit<NetworkDevice, 'id' | 'missingCount' | 'lastScan' | 'online'>,
+  ): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/rede/dispositivos`,
+      device,
+    );
+  }
+
+  updateNetworkDevice(device: NetworkDevice): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(
+      `${this.apiUrl}/rede/dispositivos/${device.id}`,
+      device,
+    );
+  }
+
+  deleteNetworkDevice(id: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/rede/dispositivos/${id}`,
     );
   }
 

@@ -1,8 +1,15 @@
 <main class="app-shell">
   <header class="topbar">
-    <div>
-      <span class="eyebrow">Automação residencial</span>
-      <h1>Monitoramento do tanque</h1>
+    <div class="flex items-center gap-3">
+      <img
+        src="logo-header.svg"
+        alt="Ícone de Automação"
+        class="w-8 h-8 object-contain"
+      />
+      <span
+        class="text-sm font-semibold uppercase tracking-wider text-cyan-600"
+      >
+      </span>
     </div>
 
     @if (authenticated()) {
@@ -21,9 +28,25 @@
     <section class="dashboard">
       <div class="dashboard-header">
         <span class="eyebrow">Área restrita</span>
-        <h2>Configurações e diagnóstico</h2>
-        <p>Calibração do sensor, leituras do banco e alertas do Telegram. Versão 1.2</p>
+        <p>
+          Versão 1.4
+        </p>
       </div>
+
+      <nav class="admin-menu" aria-label="Menu administrativo">
+        <p-button
+          label="Tanque"
+          icon="pi pi-chart-line"
+          [severity]="adminSection() === 'tank' ? 'primary' : 'secondary'"
+          (onClick)="selectAdminSection('tank')"
+        />
+        <p-button
+          label="Monitor de rede"
+          icon="pi pi-wifi"
+          [severity]="adminSection() === 'network' ? 'primary' : 'secondary'"
+          (onClick)="selectAdminSection('network')"
+        />
+      </nav>
 
       @if (adminMessage()) {
         <div class="feedback success">{{ adminMessage() }}</div>
@@ -35,245 +58,574 @@
       @if (loadingAdmin()) {
         <div class="loading-card">Carregando informações...</div>
       } @else {
-        <div class="admin-grid">
-          <section class="card configuration-card">
-            <div class="card-heading">
-              <div>
-                <span class="eyebrow">Calibração</span>
-                <h3>Limites do tanque</h3>
+        @if (adminSection() === "tank") {
+          <div class="admin-grid">
+            <section class="card configuration-card">
+              <div class="card-heading">
+                <div>
+                  <span class="eyebrow">Calibração</span>
+                  <h3>Limites do tanque</h3>
+                </div>
+                <i class="pi pi-sliders-h"></i>
               </div>
-              <i class="pi pi-sliders-h"></i>
-            </div>
 
-            <label for="distanciaCheio">
-              Distância com tanque cheio (cm)
-            </label>
-            <input
-              id="distanciaCheio"
-              type="number"
-              min="0"
-              step="0.01"
-              pInputText
-              [ngModel]="configuration().distanciaCheio"
-              (ngModelChange)="updateDistance('distanciaCheio', $event)"
-            />
+              <label for="distanciaCheio">
+                Distância com tanque cheio (cm)
+              </label>
+              <input
+                id="distanciaCheio"
+                type="number"
+                min="0"
+                step="0.01"
+                pInputText
+                [ngModel]="configuration().distanciaCheio"
+                (ngModelChange)="updateDistance('distanciaCheio', $event)"
+              />
 
-            <label for="distanciaVazio">
-              Distância com tanque vazio (cm)
-            </label>
-            <input
-              id="distanciaVazio"
-              type="number"
-              min="0"
-              step="0.01"
-              pInputText
-              [ngModel]="configuration().distanciaVazio"
-              (ngModelChange)="updateDistance('distanciaVazio', $event)"
-            />
+              <label for="distanciaVazio">
+                Distância com tanque vazio (cm)
+              </label>
+              <input
+                id="distanciaVazio"
+                type="number"
+                min="0"
+                step="0.01"
+                pInputText
+                [ngModel]="configuration().distanciaVazio"
+                (ngModelChange)="updateDistance('distanciaVazio', $event)"
+              />
 
-            <small>
-              Quanto menor a distância medida, maior é o nível da água.
-            </small>
-            <p-button
-              label="Salvar limites"
-              icon="pi pi-save"
-              [loading]="savingConfiguration()"
-              (onClick)="saveConfiguration()"
-            />
-          </section>
+              <small>
+                Quanto menor a distância medida, maior é o nível da água.
+              </small>
+              <p-button
+                label="Salvar limites"
+                icon="pi pi-save"
+                [loading]="savingConfiguration()"
+                (onClick)="saveConfiguration()"
+              />
+            </section>
 
-          <section class="card">
-            <div class="card-heading">
-              <div>
-                <span class="eyebrow">Banco de dados</span>
-                <h3>Extremos observados</h3>
+            <section class="card">
+              <div class="card-heading">
+                <div>
+                  <span class="eyebrow">Banco de dados</span>
+                  <h3>Extremos observados</h3>
+                </div>
+                <i class="pi pi-database"></i>
               </div>
-              <i class="pi pi-database"></i>
-            </div>
 
-            <div class="extreme">
-              <span>Menor distância (tanque mais cheio)</span>
-              <strong>{{ extremes()?.menorDistancia?.valor ?? "-" }} cm</strong>
-              <small>
-                {{
-                  normalizeDate(extremes()?.menorDistancia?.dt)
-                    | date: "dd/MM/yyyy HH:mm"
-                }}
-              </small>
-            </div>
-            <div class="extreme">
-              <span>Maior distância (tanque mais vazio)</span>
-              <strong>{{ extremes()?.maiorDistancia?.valor ?? "-" }} cm</strong>
-              <small>
-                {{
-                  normalizeDate(extremes()?.maiorDistancia?.dt)
-                    | date: "dd/MM/yyyy HH:mm"
-                }}
-              </small>
-            </div>
-            <div class="database-summary">
-              <span>{{ extremes()?.total ?? 0 }} leituras registradas</span>
-            </div>
-          </section>
-        </div>
-
-        <section class="card chart-card">
-          <div class="card-heading">
-            <div>
-              <span class="eyebrow">Últimos cinco dias</span>
-              <h3>Níveis mais altos e mais baixos</h3>
-            </div>
-            <div class="legend">
-              <span><i class="high"></i> Mais alto</span>
-              <span><i class="low"></i> Mais baixo</span>
-            </div>
+              <div class="extreme">
+                <span>Menor distância (tanque mais cheio)</span>
+                <strong
+                  >{{ extremes()?.menorDistancia?.valor ?? "-" }} cm</strong
+                >
+                <small>
+                  {{
+                    normalizeDate(extremes()?.menorDistancia?.dt)
+                      | date: "dd/MM/yyyy HH:mm"
+                  }}
+                </small>
+              </div>
+              <div class="extreme">
+                <span>Maior distância (tanque mais vazio)</span>
+                <strong
+                  >{{ extremes()?.maiorDistancia?.valor ?? "-" }} cm</strong
+                >
+                <small>
+                  {{
+                    normalizeDate(extremes()?.maiorDistancia?.dt)
+                      | date: "dd/MM/yyyy HH:mm"
+                  }}
+                </small>
+              </div>
+              <div class="database-summary">
+                <span>{{ extremes()?.total ?? 0 }} leituras registradas</span>
+              </div>
+            </section>
           </div>
 
-          @if (dailyExtremes().length) {
-            <div class="chart-scroll">
-              <svg
-                class="level-chart"
-                viewBox="0 0 700 270"
-                role="img"
-                aria-label="Gráfico dos níveis extremos dos últimos cinco dias"
-              >
-                @for (line of [0, 25, 50, 75, 100]; track line) {
-                  <line
-                    x1="55"
-                    x2="655"
-                    [attr.y1]="chartY(line)"
-                    [attr.y2]="chartY(line)"
-                    class="grid-line"
-                  />
-                  <text x="8" [attr.y]="chartY(line) + 4" class="axis-label">
-                    {{ line }}%
-                  </text>
-                }
-
-                <polyline [attr.points]="highLevelPoints()" class="line high" />
-                <polyline [attr.points]="lowLevelPoints()" class="line low" />
-
-                @for (item of dailyExtremes(); track item.data; let index = $index) {
-                  <circle
-                    [attr.cx]="chartX(index)"
-                    [attr.cy]="chartY(item.nivelMaisAlto.percentual)"
-                    r="5"
-                    class="point high"
-                  >
-                    <title>
-                      Mais alto: {{ item.nivelMaisAlto.percentual }}%,
-                      {{ item.nivelMaisAlto.distancia }} cm em
-                      {{ normalizeDate(item.nivelMaisAlto.dt) | date: "dd/MM HH:mm" }}
-                    </title>
-                  </circle>
-                  <circle
-                    [attr.cx]="chartX(index)"
-                    [attr.cy]="chartY(item.nivelMaisBaixo.percentual)"
-                    r="5"
-                    class="point low"
-                  >
-                    <title>
-                      Mais baixo: {{ item.nivelMaisBaixo.percentual }}%,
-                      {{ item.nivelMaisBaixo.distancia }} cm em
-                      {{ normalizeDate(item.nivelMaisBaixo.dt) | date: "dd/MM HH:mm" }}
-                    </title>
-                  </circle>
-                  <text
-                    [attr.x]="chartX(index)"
-                    y="252"
-                    text-anchor="middle"
-                    class="axis-label"
-                  >
-                    {{ normalizeDate(item.data) | date: "dd/MM" }}
-                  </text>
-                }
-              </svg>
+          <section class="card chart-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">Últimos cinco dias</span>
+                <h3>Níveis mais altos e mais baixos</h3>
+              </div>
+              <div class="legend">
+                <span><i class="high"></i> Mais alto</span>
+                <span><i class="low"></i> Mais baixo</span>
+              </div>
             </div>
 
-            <div class="daily-list">
-              @for (item of dailyExtremes(); track item.data) {
-                <article>
-                  <strong>{{ normalizeDate(item.data) | date: "dd/MM/yyyy" }}</strong>
-                  <span>
-                    Alto: {{ item.nivelMaisAlto.percentual }}% às
-                    {{ normalizeDate(item.nivelMaisAlto.dt) | date: "HH:mm" }}
-                  </span>
-                  <span>
-                    Baixo: {{ item.nivelMaisBaixo.percentual }}% às
-                    {{ normalizeDate(item.nivelMaisBaixo.dt) | date: "HH:mm" }}
-                  </span>
-                </article>
-              }
-            </div>
-          } @else {
-            <p class="empty-state">Não há leituras nos últimos cinco dias.</p>
-          }
-        </section>
-
-        <section class="card telegram-card">
-          <div class="card-heading">
-            <div>
-              <span class="eyebrow">Telegram</span>
-              <h3>Pessoas sem nome</h3>
-            </div>
-            <span class="counter">{{ pendingTelegrams().length }}</span>
-          </div>
-
-          @if (pendingTelegrams().length) {
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Send ID</th>
-                    <th>Recebido em</th>
-                    <th>Nome</th>
-                    <th>Enviar alerta</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (telegram of pendingTelegrams(); track telegram.id) {
-                    <tr>
-                      <td data-label="Send ID">{{ telegram.send }}</td>
-                      <td data-label="Recebido em">
-                        {{ normalizeDate(telegram.dt) | date: "dd/MM/yyyy HH:mm" }}
-                      </td>
-                      <td data-label="Nome">
-                        <input
-                          type="text"
-                          pInputText
-                          [(ngModel)]="telegram.nome"
-                          placeholder="Nome da pessoa"
-                        />
-                      </td>
-                      <td data-label="Enviar alerta">
-                        <label class="checkbox-label">
-                          <input type="checkbox" [(ngModel)]="telegram.enviar" />
-                          Sim
-                        </label>
-                      </td>
-                      <td>
-                        <p-button
-                          label="Salvar"
-                          icon="pi pi-check"
-                          size="small"
-                          [loading]="savingTelegramId() === telegram.id"
-                          (onClick)="saveTelegram(telegram)"
-                        />
-                      </td>
-                    </tr>
+            @if (dailyExtremes().length) {
+              <div class="chart-scroll">
+                <svg
+                  class="level-chart"
+                  viewBox="0 0 700 270"
+                  role="img"
+                  aria-label="Gráfico dos níveis extremos dos últimos cinco dias"
+                >
+                  @for (line of [0, 25, 50, 75, 100]; track line) {
+                    <line
+                      x1="55"
+                      x2="655"
+                      [attr.y1]="chartY(line)"
+                      [attr.y2]="chartY(line)"
+                      class="grid-line"
+                    />
+                    <text x="8" [attr.y]="chartY(line) + 4" class="axis-label">
+                      {{ line }}%
+                    </text>
                   }
-                </tbody>
-              </table>
+
+                  <polyline
+                    [attr.points]="highLevelPoints()"
+                    class="line high"
+                  />
+                  <polyline [attr.points]="lowLevelPoints()" class="line low" />
+
+                  @for (
+                    item of dailyExtremes();
+                    track item.data;
+                    let index = $index
+                  ) {
+                    <circle
+                      [attr.cx]="chartX(index)"
+                      [attr.cy]="chartY(item.nivelMaisAlto.percentual)"
+                      r="5"
+                      class="point high"
+                    >
+                      <title>
+                        Mais alto: {{ item.nivelMaisAlto.percentual }}%,
+                        {{ item.nivelMaisAlto.distancia }} cm em
+                        {{
+                          normalizeDate(item.nivelMaisAlto.dt)
+                            | date: "dd/MM HH:mm"
+                        }}
+                      </title>
+                    </circle>
+                    <circle
+                      [attr.cx]="chartX(index)"
+                      [attr.cy]="chartY(item.nivelMaisBaixo.percentual)"
+                      r="5"
+                      class="point low"
+                    >
+                      <title>
+                        Mais baixo: {{ item.nivelMaisBaixo.percentual }}%,
+                        {{ item.nivelMaisBaixo.distancia }} cm em
+                        {{
+                          normalizeDate(item.nivelMaisBaixo.dt)
+                            | date: "dd/MM HH:mm"
+                        }}
+                      </title>
+                    </circle>
+                    <text
+                      [attr.x]="chartX(index)"
+                      y="252"
+                      text-anchor="middle"
+                      class="axis-label"
+                    >
+                      {{ normalizeDate(item.data) | date: "dd/MM" }}
+                    </text>
+                  }
+                </svg>
+              </div>
+
+              <div class="daily-list">
+                @for (item of dailyExtremes(); track item.data) {
+                  <article>
+                    <strong>{{
+                      normalizeDate(item.data) | date: "dd/MM/yyyy"
+                    }}</strong>
+                    <span>
+                      Alto: {{ item.nivelMaisAlto.percentual }}% às
+                      {{ normalizeDate(item.nivelMaisAlto.dt) | date: "HH:mm" }}
+                    </span>
+                    <span>
+                      Baixo: {{ item.nivelMaisBaixo.percentual }}% às
+                      {{
+                        normalizeDate(item.nivelMaisBaixo.dt) | date: "HH:mm"
+                      }}
+                    </span>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="empty-state">Não há leituras nos últimos cinco dias.</p>
+            }
+          </section>
+
+          <section class="card chart-card history-chart-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">Últimas 24 horas</span>
+                <h3>Histórico do nível do tanque</h3>
+              </div>
+              <div class="legend">
+                <span><i class="history"></i> Nível medido</span>
+              </div>
             </div>
-          } @else {
-            <p class="empty-state">Todos os usuários do Telegram possuem nome.</p>
-          }
-        </section>
+
+            @if (history24Hours().length) {
+              <div class="chart-scroll">
+                <svg
+                  class="level-chart"
+                  viewBox="0 0 700 270"
+                  role="img"
+                  aria-label="Gráfico do histórico do tanque nas últimas 24 horas"
+                >
+                  @for (line of [0, 25, 50, 75, 100]; track line) {
+                    <line
+                      x1="55"
+                      x2="655"
+                      [attr.y1]="chartY(line)"
+                      [attr.y2]="chartY(line)"
+                      class="grid-line"
+                    />
+                    <text x="8" [attr.y]="chartY(line) + 4" class="axis-label">
+                      {{ line }}%
+                    </text>
+                  }
+
+                  <polyline
+                    [attr.points]="history24HourPoints()"
+                    class="line history"
+                  />
+
+                  @for (
+                    item of history24Hours();
+                    track item.dt;
+                    let index = $index
+                  ) {
+                    <circle
+                      [attr.cx]="historyChartX(index)"
+                      [attr.cy]="chartY(item.percentual)"
+                      r="4"
+                      class="point history"
+                    >
+                      <title>
+                        {{ item.percentual }}% ({{ item.distancia }} cm) em
+                        {{ normalizeDate(item.dt) | date: "dd/MM HH:mm" }}
+                      </title>
+                    </circle>
+                  }
+
+                  @for (
+                    item of history24Hours();
+                    track item.dt;
+                    let index = $index
+                  ) {
+                    @if (index === 0 || index === history24Hours().length - 1) {
+                      <text
+                        [attr.x]="historyChartX(index)"
+                        y="252"
+                        text-anchor="middle"
+                        class="axis-label"
+                      >
+                        {{ normalizeDate(item.dt) | date: "HH:mm" }}
+                      </text>
+                    }
+                  }
+                </svg>
+              </div>
+            } @else {
+              <p class="empty-state">Não há leituras nas últimas 24 horas.</p>
+            }
+          </section>
+
+          <section class="card telegram-card">
+            <div class="card-heading">
+              <div>
+                <span class="eyebrow">Telegram</span>
+                <h3>Pessoas sem nome</h3>
+              </div>
+              <span class="counter">{{ pendingTelegrams().length }}</span>
+            </div>
+
+            @if (pendingTelegrams().length) {
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Send ID</th>
+                      <th>Recebido em</th>
+                      <th>Nome</th>
+                      <th>Enviar alerta</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (telegram of pendingTelegrams(); track telegram.id) {
+                      <tr>
+                        <td data-label="Send ID">{{ telegram.send }}</td>
+                        <td data-label="Recebido em">
+                          {{
+                            normalizeDate(telegram.dt)
+                              | date: "dd/MM/yyyy HH:mm"
+                          }}
+                        </td>
+                        <td data-label="Nome">
+                          <input
+                            type="text"
+                            pInputText
+                            [(ngModel)]="telegram.nome"
+                            placeholder="Nome da pessoa"
+                          />
+                        </td>
+                        <td data-label="Enviar alerta">
+                          <label class="checkbox-label">
+                            <input
+                              type="checkbox"
+                              [(ngModel)]="telegram.enviar"
+                            />
+                            Sim
+                          </label>
+                        </td>
+                        <td>
+                          <p-button
+                            label="Salvar"
+                            icon="pi pi-check"
+                            size="small"
+                            [loading]="savingTelegramId() === telegram.id"
+                            (onClick)="saveTelegram(telegram)"
+                          />
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="empty-state">
+                Todos os usuários do Telegram possuem nome.
+              </p>
+            }
+          </section>
+        } @else {
+          <section class="network-panel">
+            <div class="network-panel-header">
+              <div>
+                <span class="eyebrow">Monitoramento de rede</span>
+                <h3>Dispositivos reservados</h3>
+              </div>
+              <p-button
+                label="Novo dispositivo"
+                icon="pi pi-plus"
+                (onClick)="openDeviceDialog()"
+              />
+            </div>
+
+            @if (loadingNetwork()) {
+              <div class="loading-card">Carregando dispositivos...</div>
+            } @else {
+              <section class="card">
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Dispositivo</th>
+                        <th>IP</th>
+                        <th>MAC</th>
+                        <th>Status</th>
+                        <th>Última varredura</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (device of networkDevices(); track device.id) {
+                        <tr>
+                          <td data-label="Dispositivo">
+                            <strong>{{ device.deviceNome }}</strong>
+                          </td>
+                          <td data-label="IP">{{ device.ipAddress }}</td>
+                          <td data-label="MAC">{{ device.macAddress }}</td>
+                          <td data-label="Status">
+                            <span
+                              class="device-status"
+                              [class.online]="device.online"
+                              [class.offline]="!device.online"
+                              >{{ device.online ? "Online" : "Offline" }}</span
+                            >
+                          </td>
+                          <td data-label="Última varredura">
+                            {{
+                              normalizeDate(device.lastScan)
+                                | date: "dd/MM/yyyy HH:mm"
+                            }}
+                          </td>
+                          <td class="row-actions">
+                            <p-button
+                              icon="pi pi-pencil"
+                              severity="secondary"
+                              size="small"
+                              [text]="true"
+                              (onClick)="openDeviceDialog(device)"
+                            />
+                            <p-button
+                              icon="pi pi-trash"
+                              severity="danger"
+                              size="small"
+                              [text]="true"
+                              (onClick)="deleteDevice(device)"
+                            />
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="6" class="empty-state">
+                            Nenhum dispositivo configurado.
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="card network-history-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Histórico</span>
+                    <h3>Últimas conexões</h3>
+                    <div>
+                      <input
+                        type="text"
+                        pInputText
+                        placeholder="Nome do dispositivo"
+                        [ngModel]="nomeBusca()"
+                        (ngModelChange)="
+                          nomeBusca.set($event); onBuscar($event)
+                        "
+                      />
+                    </div>
+                  </div>
+                  <span class="counter">{{ networkHistory().length }}</span>
+                </div>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Dispositivo</th>
+                        <th>Conectou em</th>
+                        <th>Última vez visto</th>
+                        <th>Desconectou em</th>
+                        <th>Duração</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (history of networkHistory(); track history.id) {
+                        <tr>
+                          <td data-label="Dispositivo">
+                            {{ history.deviceNome }}
+                          </td>
+                          <td data-label="Conectou em">
+                            {{
+                              normalizeDate(history.connectTime)
+                                | date: "dd/MM/yyyy HH:mm"
+                            }}
+                          </td>
+                          <td data-label="Última vez visto">
+                            {{
+                              normalizeDate(history.lastSeen)
+                                | date: "dd/MM/yyyy HH:mm"
+                            }}
+                          </td>
+                          <td data-label="Desconectou em">
+                            {{
+                              normalizeDate(history.disconnectTime)
+                                | date: "dd/MM/yyyy HH:mm"
+                            }}
+                          </td>
+                          <td data-label="Duração">
+                            {{
+                              history.timeConnection ??
+                                (history.disconnectTime ? "-" : "Conectado")
+                            }}
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="5" class="empty-state">
+                            Ainda não há conexões registradas.
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section
+                class="card network-history-card unknown-connections-card"
+              >
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Atenção</span>
+                    <h3>Conexões desconhecidas</h3>
+                  </div>
+                  <span class="counter">{{
+                    unknownNetworkConnections().length
+                  }}</span>
+                </div>
+                <p class="section-description">
+                  Últimas 10 conexões cujo endereço MAC não está cadastrado.
+                </p>
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Dispositivo informado</th>
+                        <th>MAC</th>
+                        <th>IP</th>
+                        <th>Conectou em</th>
+                        <th>Desconectou em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (
+                        connection of unknownNetworkConnections();
+                        track connection.id
+                      ) {
+                        <tr>
+                          <td data-label="Dispositivo informado">
+                            {{ connection.deviceNome ?? "-" }}
+                          </td>
+                          <td data-label="MAC">{{ connection.macAddress }}</td>
+                          <td data-label="IP">
+                            {{ connection.ipAddress ?? "-" }}
+                          </td>
+                          <td data-label="Conectou em">
+                            {{
+                              normalizeDate(connection.connectTime)
+                                | date: "dd/MM/yyyy HH:mm"
+                            }}
+                          </td>
+                          <td data-label="Desconectou em">
+                            {{
+                              normalizeDate(connection.disconnectTime)
+                                | date: "dd/MM/yyyy HH:mm"
+                            }}
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="5" class="empty-state">
+                            Nenhuma conexão desconhecida encontrada.
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            }
+          </section>
+        }
       }
     </section>
   } @else {
     <section class="monitor">
+      <h1>Monitoramento do tanque</h1>
       <div class="tank-panel" aria-live="polite">
         <div class="tank-graphic" aria-label="Capacidade atual do tanque">
           <div class="tank">
@@ -293,15 +645,28 @@
             </span>
           }
 
-          <a
-            class="telegram-alert"
-            href="https://t.me/casa_ERL_bot"
-            target="_blank"
-            rel="noopener"
+          <button
+            class="push-alert"
+            type="button"
+            (click)="enablePushNotifications()"
+            [disabled]="
+              enablingPushNotifications() ||
+              pushNotificationStatus() === 'subscribed'
+            "
           >
-            <i class="pi pi-send" aria-hidden="true"></i>
-            Avisar quando chegar a 30%
-          </a>
+            <i class="pi pi-bell" aria-hidden="true"></i>
+            {{
+              pushNotificationStatus() === "subscribed"
+                ? "Notificações ativadas"
+                : "Avisar quando chegar a 30%"
+            }}
+          </button>
+          @if (alertFormError()) {
+            <p class="form-error">{{ alertFormError() }}</p>
+          }
+          @if (alertFormMessage()) {
+            <p class="alert-success">{{ alertFormMessage() }}</p>
+          }
         </div>
       </div>
     </section>
@@ -352,6 +717,50 @@
         (onClick)="loginVisible.set(false)"
       />
       <p-button label="Entrar" icon="pi pi-check" type="submit" />
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  header="Dispositivo da rede"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [visible]="deviceDialogVisible()"
+  (visibleChange)="deviceDialogVisible.set($event)"
+  styleClass="login-dialog"
+>
+  <form class="login-form" (ngSubmit)="saveDevice()">
+    <label for="deviceNome">Nome do dispositivo</label>
+    <input
+      id="deviceNome"
+      name="deviceNome"
+      pInputText
+      [ngModel]="deviceForm().deviceNome"
+      (ngModelChange)="updateDeviceField('deviceNome', $event)"
+    />
+    <label for="deviceMac">Endereço MAC</label>
+    <input
+      id="deviceMac"
+      name="deviceMac"
+      pInputText
+      placeholder="AA:BB:CC:DD:EE:FF"
+      [ngModel]="deviceForm().macAddress"
+      (ngModelChange)="updateDeviceField('macAddress', $event)"
+    />
+    <div class="dialog-actions">
+      <p-button
+        label="Cancelar"
+        severity="secondary"
+        type="button"
+        (onClick)="deviceDialogVisible.set(false)"
+      />
+      <p-button
+        label="Salvar"
+        icon="pi pi-check"
+        type="submit"
+        [loading]="savingDevice()"
+      />
     </div>
   </form>
 </p-dialog>

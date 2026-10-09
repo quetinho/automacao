@@ -18,7 +18,7 @@ export interface LoginResponse {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly storageKey = 'automacao.jwt';
-  private readonly apiUrl = '/db/login';
+  private readonly apiUrl = 'db/login';
 
   get token(): string | null {
     return localStorage.getItem(this.storageKey);

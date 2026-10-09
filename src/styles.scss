@@ -6,4 +6,13 @@
 
 body {
   margin: 0;
+  /* Fundo principal do sistema */
+  background-color: var(--p-surface-50); 
+}
+
+
+/* Se quiser um toque de degradê no cabeçalho ou sidebar */
+.p-sidebar, .header-custom {
+  background: linear-gradient(135deg, #00E5FF 0%, #00A8E8 100%);
+  color: white;
 }

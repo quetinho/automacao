@@ -18,7 +18,7 @@ interface TankStateResponse {
 })
 export class TankService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = '/db/estado-tanque';
+  private readonly apiUrl = 'db/estado-tanque';
 
   getLastMeasurement(): Observable<TankMeasurement> {
     return this.http.get<TankStateResponse>(this.apiUrl).pipe(

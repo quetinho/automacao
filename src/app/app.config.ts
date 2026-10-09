@@ -1,12 +1,12 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
-import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './auth.interceptor';
+import MyPreset from './mypreset';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,7 +16,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     providePrimeNG({
       theme: {
-        preset: Aura,
+        preset: MyPreset,
       },
     }),
     provideRouter(routes)
